@@ -765,7 +765,7 @@ app = Flask(__name__)
 dispatcher = Dispatcher(bot, None, workers=0)
 
 def start(update: Update, context=None):
-    update.message.reply_text("Привет! Отправь мне Word-файл, я зачеркиваю в нём имена из списка.")
+    update.message.reply_text("Здравствуйте! Меня создал Александр @kaimagic, самый лучший и самый красивый человек в этом мире. Чтобы помочь его суженой ряженой мармеладке Быковой Анне Дмитриевне сдать диплом. Отправьте мне Word-файл и я выделю имена иноагентов красным цветом.")
 
 def handle_doc(update: Update, context=None):
     file = update.message.document.get_file()
@@ -797,7 +797,7 @@ def handle_doc(update: Update, context=None):
     doc.save(output)
     output.seek(0)
 
-    update.message.reply_document(document=output, filename="highlighted.docx")
+    update.message.reply_document(document=output, filename="Готовый файл.docx")
 
 # Регистрируем обработчики
 dispatcher.add_handler(CommandHandler("start", start))
