@@ -1,13 +1,12 @@
 import os
-from flask import Flask, request
+from flask import Flask, request, send_file
 from telegram import Update, Bot
 from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
 from io import BytesIO
 from docx import Document
 from docx.shared import RGBColor
-import pymorphy2
 
-# Список имён иноагентов для выделения (пример)
+# Список имён иноагентов для зачеркивания (пример)
 FOREIGN_AGENT_NAMES = ["Иван Иванов", "Мария Петрова", "John Smith", "Ресурсный центр для ЛГБТ", "Босов Катерина Евгеньевна", "Общество с ограниченной ответственностью «ЕЛКИН КАРТОН»",
     "Ресурсный центр для ЛГБТ",
     "Телеканал Дождь",
@@ -23,6 +22,8 @@ FOREIGN_AGENT_NAMES = ["Иван Иванов", "Мария Петрова", "Jo
     "Алексей Венедиктов",
     "Максим Кац",
     "Илья Варламов",
+    "Иноземцев Александр Александрович",
+    "Быкова Анна Дмитриевна",
     "Михаил Ходорковский",
     "Григорий Чхартишвили (Борис Акунин)",
     "Юлия Латынина",
@@ -1138,16 +1139,6 @@ bot = Bot(token=TOKEN)
 app = Flask(__name__)
 dispatcher = Dispatcher(bot, None, workers=0)
 
-morph = pymorphy2.MorphAnalyzer()
-
-# Собираем множество лемм из списка иноагентов
-foreign_agent_lemmas = set()
-for full_name in FOREIGN_AGENT_NAMES:
-    words = full_name.split()
-    for w in words:
-        p = morph.parse(w)[0]
-        foreign_agent_lemmas.add(p.normal_form.lower())
-
 def start(update: Update, context=None):
     update.message.reply_text(
         "🤖 Би-би-боп, Здравствуйте!\n\n"
@@ -1167,25 +1158,21 @@ def handle_doc(update: Update, context=None):
 
     for para in doc.paragraphs:
         original_text = para.text
-        para.clear()  # Очищаем параграф для ручного добавления текста с цветом
+        para.clear()  # Очищаем параграф, чтобы вручную вставить отформатированные куски
 
-        words = original_text.split(' ')
-        for i, word in enumerate(words):
-            # Чистим слово от пунктуации для анализа
-            stripped_word = ''.join([c for c in word if c.isalpha() or c == '-']).lower()
-            if stripped_word:
-                parsed = morph.parse(stripped_word)[0]
-                lemma = parsed.normal_form.lower()
-            else:
-                lemma = ""
-
-            run = para.add_run(word)
-            if lemma in foreign_agent_lemmas:
-                run.font.color.rgb = RGBColor(255, 0, 0)  # красный цвет
-
-            # Восстанавливаем пробел, кроме последнего слова
-            if i != len(words) - 1:
-                run.add_text(' ')
+        i = 0
+        while i < len(original_text):
+            match_found = False
+            for name in FOREIGN_AGENT_NAMES:
+                if original_text[i:i+len(name)] == name:
+                    run = para.add_run(name)
+                    run.font.color.rgb = RGBColor(255, 0, 0)  # Красный цвет
+                    i += len(name)
+                    match_found = True
+                    break
+            if not match_found:
+                run = para.add_run(original_text[i])
+                i += 1
 
     output = BytesIO()
     doc.save(output)
