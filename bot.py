@@ -4,6 +4,7 @@ from telegram import Update, Bot
 from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
 from io import BytesIO
 from docx import Document
+from docx.shared import RGBColor
 
 # Список имён иноагентов для зачеркивания (пример)
 FOREIGN_AGENT_NAMES = ["Иван Иванов", "Мария Петрова", "John Smith"]
@@ -27,22 +28,29 @@ def handle_doc(update: Update, context=None):
 
     doc = Document(file_bytes)
 
-    # Проходим по всем абзацам и заменяем имена из списка
     for para in doc.paragraphs:
-        for name in FOREIGN_AGENT_NAMES:
-            if name in para.text:
-                # Зачеркиваем имя (ставим форматирование strikethrough)
-                run = para.add_run()
-                run.text = ""
-                # Удалим и заменим текст с именем зачеркиванием:
-                para.text = para.text.replace(name, f"̶{name}̶")  # Это упрощенный способ (не гарантирован)
+        original_text = para.text
+        para.clear()  # Очищаем параграф, чтобы вручную вставить отформатированные куски
 
-    # Сохраняем изменённый документ в память
+        i = 0
+        while i < len(original_text):
+            match_found = False
+            for name in FOREIGN_AGENT_NAMES:
+                if original_text[i:i+len(name)] == name:
+                    run = para.add_run(name)
+                    run.font.color.rgb = RGBColor(255, 0, 0)  # Красный цвет
+                    i += len(name)
+                    match_found = True
+                    break
+            if not match_found:
+                run = para.add_run(original_text[i])
+                i += 1
+
     output = BytesIO()
     doc.save(output)
     output.seek(0)
 
-    update.message.reply_document(document=output, filename="edited.docx")
+    update.message.reply_document(document=output, filename="highlighted.docx")
 
 # Регистрируем обработчики
 dispatcher.add_handler(CommandHandler("start", start))
