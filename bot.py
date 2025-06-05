@@ -7,7 +7,7 @@ from docx import Document
 from docx.shared import RGBColor
 
 # Список имён иноагентов для зачеркивания (пример)
-FOREIGN_AGENT_NAMES = ["Иван Иванов", "Мария Петрова", "John Smith"]
+FOREIGN_AGENT_NAMES = ["Иван Иванов", "Мария Петрова", "John Smith", "Ресурсный центр для ЛГБТ", "Босов Катерина Евгеньевна"]
 
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
